@@ -1,16 +1,38 @@
-# __author__ = 'macuser'
-# from rest_framework import serializers
-# from models import *
-#
-#
-# class RecipeSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Recipe
-#         depth = 1
+from rest_framework import serializers
+from models import *
 
-l = [x * 2 for x in range(1,10) if x % 3 == 0]
+class IngredientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ingredient
 
-print l
+class RecipeSerializer(serializers.ModelSerializer):
+    ingredients = IngredientSerializer(many=True)
+
+
+    class Meta:
+        model = Recipe
+
+
+    def create(self, validated_data):
+        ingredients_data = validated_data.pop('ingredients')
+        recipe = Recipe.objects.create(**validated_data)
+        for ingredient in ingredients_data:
+            try:
+                ingredient = Ingredient.objects.get(name=ingredient["name"])
+            except Ingredient.DoesNotExist():
+                ingredient = Ingredient.objects.create(**ingredient)
+            recipe.ingredients.add(ingredient)
+        return recipe
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment
+
+    def get_comments(self, obj):
+        comments = Comment.objects.filter(recipe=obj.id)
+        serializer = CommentSerializer(comments, many=True)
+        return serializer.data
 
 
 
